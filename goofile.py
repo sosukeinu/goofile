@@ -11,8 +11,9 @@
 import getopt
 import re
 import sys
-
 import http.client
+
+import requests
 
 print("\n----------------------------------------")
 print("|Goofile v1.6	                        |")
@@ -35,7 +36,7 @@ def usage():
     sys.exit()
 
 
-def run(dmn, file):
+def run_basic(dmn, file):
     h = http.client.HTTPSConnection('www.google.com')
     headers = {'Host': 'www.google.com', 'User-agent': 'Internet Explorer 6.0 ', 'Referrer': 'www.g13net.com'}
     h.request('GET', "/search?num=500&q=site:" + dmn + "+filetype:" + file, headers=headers)
@@ -62,45 +63,66 @@ def run(dmn, file):
         sys.exit()
     return res
 
+def run_api(dmn, file, key, engine, **kwargs):
+    start_index = kwargs.get('startIndex', 1)
+    r = requests.get("https://www.googleapis.com/customsearch/v1?key={0}&siteSearch={1}&fileType={2}&cx={3}&startIndex={4}&q=''".format(key, dmn, file, engine, start_index))
+    res = r.json()['items']
+    return res
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
     global limit
     limit = 100
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         usage()
     try:
-        opts, args = getopt.getopt(args, "d:f:")
+        opts, args = getopt.getopt(args, "d:f:k:e:")
 
     except getopt.GetoptError:
         usage()
         sys.exit()
-
+    key = None
+    engine = None
     for opt, arg in opts:
         if opt == '-f':
             file = arg
         elif opt == '-d':
             dmn = arg
+        elif opt == '-k':
+            key = arg
+        elif opt == '-e':
+            engine = arg
 
     print("Searching in {0} for {1}".format(dmn, file))
     print("========================================")
-
     cant = 0
 
     while cant < limit:
-        res = run(dmn, file)
+        if key and engine:
+            res = run_api(dmn, file, key, engine)
+        else:
+            res = run_basic(dmn, file)
         for x in res:
             if result.count(x) == 0:
-                result.append(x)
+                if key and engine:
+                    result.append(x['link'])
+                else:
+                    result.append(x)
         cant += 100
 
     print("\nFiles found:")
     print("====================\n")
     t = 0
     if result:
-        for x in result:
-            x = re.sub('<li class="first">', '', x)
-        x = re.sub('</li>', '', x)
+        if key and engine:
+            for x in result:
+                print(x)
+                t += 1
+        else:
+            for x in result:
+                x = re.sub('<li class="first">', '', x)
+            x = re.sub('</li>', '', x)
         print(x)
         t += 1
         print("====================\n")
