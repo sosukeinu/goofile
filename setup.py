@@ -15,11 +15,11 @@ config = {
     'author_email': 'jonathanbatteas@gmail.com',
     'version': '1.6',
     'install_requires': required,
-    'packages': [],
-    'scripts': ['goofile.py'],
+    'packages': ['goofile'],
+    'scripts': [],
     'entry_points': {
         'console_scripts': [
-            'goofile = goofile:main',
+            'goofile = goofile.__main__:main',
         ]
     }
 
